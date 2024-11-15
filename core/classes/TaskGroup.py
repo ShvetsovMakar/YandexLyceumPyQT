@@ -1,4 +1,4 @@
-from classes.Task import Task
+from core.classes.Task import Task
 
 class TaskGroup:
     def __init__(self, task_group_id, name):
