@@ -564,6 +564,16 @@ class Planner(QWidget):
         for i in self.task_group_menu_widgets:
             i.show()
 
+        # Recalculating the amount of completed tasks after new task was added
+        completed = 0
+        for i in self.task_groups:
+            if i.name == group_name:
+                amount = len(i.tasks)
+                for j in i.tasks:
+                    completed += j.completion
+
+        self.progress.setText(f"Выполнено: {completed}/{amount}")
+
         if not is_forward(self.task_groups, self.cur_task_groups[0][0].text()):
             self.watch_task_groups_forward.hide()
         if not is_backward(self.task_groups, self.cur_task_groups[0][0].text()):
