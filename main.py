@@ -400,6 +400,7 @@ class Planner(QWidget):
         # Checking if there are tasks groups to watch
         if not self.task_groups:
             self.main_menu_message.setText(main_menu_phrases.no_task_groups)
+            return
 
         # Setting up the task group watching menu
         for i in self.window_widgets:
