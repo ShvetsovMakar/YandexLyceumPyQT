@@ -6,14 +6,14 @@ from database.config import cur, db
 
 from core.classes.TaskGroup import TaskGroup
 from core.phrases import (add_task_group_phrases, add_task_phrases, main_menu_phrases, task_group_menu_phrases,
-                          watch_task_groups_phrases)
+                          watch_task_groups_phrases, watch_tasks_phrases)
 from core.functions.scroll_functions import is_forward, is_backward
 
 LENGTH = 750  # window length
 WIDTH = 500  # window width
 
 TASK_GROUP_NAME_MAX_LENGTH = 10
-TASK_NAME_MAX_LENGTH = 32
+TASK_NAME_MAX_LENGTH = 12
 
 
 class Planner(QWidget):
@@ -41,6 +41,7 @@ class Planner(QWidget):
         # Initializing window
         self.setGeometry(0, 0, LENGTH, WIDTH)
         self.setWindowTitle('Планировщик')
+
         # Setting background colour
         self.setStyleSheet("""
         background-color: #262626;
@@ -86,7 +87,7 @@ class Planner(QWidget):
         self.window_widgets.extend(self.main_menu_widgets)
         self.changing_widgets.extend([self.main_menu_message])
 
-        # Adding new task groups
+        # New task groups addition
         self.task_group_name_input = QLabel(self)
         self.task_group_name_input.setGeometry(LENGTH // 2 - 200, 0, 400, 50)
         self.task_group_name_input.setText(add_task_group_phrases.new_task_group)
@@ -113,7 +114,7 @@ class Planner(QWidget):
         for i in self.add_task_group_widgets:
             i.hide()
             
-        # Watching task groups
+        # Task groups watching
         self.cur_task_groups = []
         for i in range(2):
             self.cur_task_groups.append([])
@@ -123,6 +124,7 @@ class Planner(QWidget):
                                 WIDTH // 5 * (1 + j) - 50,
                                 200,
                                 50)
+                new.setText('')
                 new.clicked.connect(self.task_group_clicked)
                 self.cur_task_groups[-1].append(new)
 
@@ -154,40 +156,45 @@ class Planner(QWidget):
         self.delete_task_group = QPushButton(self)
         self.delete_task_group.setGeometry(LENGTH // 5 - 125, WIDTH // 2 - 25, 200, 50)
         self.delete_task_group.setText(task_group_menu_phrases.delete_task_group)
-        self.delete_task_group.clicked.connect(self.delete_task_group_clicked)
+        self.delete_task_group.clicked.connect(self.delete_task_group_choice_clicked)
 
         self.show_tasks = QPushButton(self)
         self.show_tasks.setGeometry(LENGTH // 5 + 100, WIDTH // 2 - 25, 200, 50)
         self.show_tasks.setText(task_group_menu_phrases.go_to_tasks)
+        self.show_tasks.clicked.connect(self.watch_tasks_choice_clicked)
 
         self.add_task_btn = QPushButton(self)
         self.add_task_btn.setGeometry(LENGTH // 5 + 325, WIDTH // 2 - 25, 200, 50)
         self.add_task_btn.setText(task_group_menu_phrases.add_task)
-        self.add_task_btn.clicked.connect(self.add_task)
+        self.add_task_btn.clicked.connect(self.add_task_choice_clicked)
 
-        self.group_task_name = QLabel(self)
-        self.group_task_name.setGeometry(LENGTH // 5 - 125, WIDTH // 2 - 100, 200, 40)
-        self.group_task_name.setText('')
+        self.task_group_menu_name = QLabel(self)
+        self.task_group_menu_name.setGeometry(LENGTH // 5 - 125, WIDTH // 2 - 100, 200, 40)
+        self.task_group_menu_name.setText('')
 
         self.progress = QLabel(self)
         self.progress.setGeometry(LENGTH // 5 + 325, WIDTH // 2 - 100, 200, 40)
         self.progress.setText('')
 
+        self.task_group_menu_message = QLabel(self)
+        self.task_group_menu_message.setGeometry(LENGTH // 5 - 125, WIDTH // 2 + 25, 500, 50)
+        self.task_group_menu_message.setText('')
+
         self.task_group_menu_widgets = [self.delete_task_group, self.show_tasks, self.add_task_btn,
-                                        self.group_task_name, self.progress,
+                                        self.task_group_menu_name, self.progress, self.task_group_menu_message,
                                         self.to_main_menu_btn]
 
         self.window_widgets.extend(self.task_group_menu_widgets)
-        self.changing_widgets.extend([self.group_task_name, self.progress])
+        self.changing_widgets.extend([self.task_group_menu_name, self.progress, self.task_group_menu_message])
 
         for i in self.task_group_menu_widgets:
             i.hide()
 
-        # Add task
+        # Task addition
         self.add_new_task_btn = QPushButton(self)
         self.add_new_task_btn.setGeometry(LENGTH // 2 + 150, WIDTH // 2 - 125, 200, 40)
         self.add_new_task_btn.setText(add_task_phrases.add_task)
-        self.add_new_task_btn.clicked.connect(self.add_new_task)
+        self.add_new_task_btn.clicked.connect(self.add_task_clicked)
 
         self.task_name_input = QLabel(self)
         self.task_name_input.setGeometry(LENGTH // 5 - 125, WIDTH // 2 - 150, 200, 40)
@@ -218,29 +225,110 @@ class Planner(QWidget):
                                  self.add_task_group_name,
                                  self.to_main_menu_btn]
 
-        self.changing_widgets.extend([self.task_name, self.task_name_error, self.add_task_group_name])
         self.window_widgets.extend(self.add_task_widgets)
+        self.changing_widgets.extend([self.task_name, self.task_name_error, self.add_task_group_name])
 
         for i in self.add_task_widgets:
             i.hide()
 
-        # Watch tasks
+        # Tasks watching
+        self.cur_tasks = []
+        for i in range(2):
+            self.cur_tasks.append([])
+            for j in range(3):
+                new = QPushButton(self)
+                new.setGeometry(LENGTH // 5 * (1 + i) + 175 * i - 137,
+                                WIDTH // 5 * (1 + j) - 50,
+                                250,
+                                50)
+                new.setText('')
+                new.setStyleSheet("background-color: gray; color: black;")
+                new.clicked.connect(self.task_clicked)
+                self.cur_tasks[-1].append(new)
+                
+        self.watch_tasks_forward = QPushButton(self)
+        self.watch_tasks_forward.setGeometry(LENGTH // 5 * 3 + 150, WIDTH // 5 - 50, 150, 50)
+        self.watch_tasks_forward.setText(watch_tasks_phrases.forward)
+        self.watch_tasks_forward.clicked.connect(self.watch_tasks_forward_clicked)
+
+        self.watch_tasks_backward = QPushButton(self)
+        self.watch_tasks_backward.setGeometry(LENGTH // 5 * 3 + 150, WIDTH // 5 * 3 - 50, 150, 50)
+        self.watch_tasks_backward.setText(watch_tasks_phrases.backward)
+        self.watch_tasks_backward.clicked.connect(self.watch_tasks_backward_clicked)
+
+        self.watch_tasks_group_name = QLabel(self)
+        self.watch_tasks_group_name.setGeometry(0, WIDTH - 50, 400, 50)
+        self.watch_tasks_group_name.setText('')
+        
+        self.watch_tasks_widgets = []
+        self.watch_tasks_widgets.extend(self.cur_tasks[0])
+        self.watch_tasks_widgets.extend(self.cur_tasks[1])
+        self.watch_tasks_widgets.extend([self.watch_tasks_forward, self.watch_tasks_backward,
+                                         self.watch_tasks_group_name,
+                                         self.to_main_menu_btn])
+        
+        self.window_widgets.extend(self.watch_tasks_widgets)
+        
+        self.changing_widgets.extend(self.cur_tasks[0])
+        self.changing_widgets.extend(self.cur_tasks[1])
+        self.changing_widgets.extend([self.watch_tasks_group_name])
+        
+        for i in self.watch_tasks_widgets:
+            i.hide()
+
+        # Task menu
+        self.task_menu_task_name = QLabel(self)
+        self.task_menu_task_name.setGeometry(50, WIDTH // 4, 300, 50)
+        self.task_menu_task_name.setText('')
+
+        self.task_menu_task_group_name = QLabel(self)
+        self.task_menu_task_group_name.setGeometry(400, WIDTH // 4, 300, 50)
+        self.task_menu_task_group_name.setText('')
+
+        self.description = QLabel(self)
+        self.description.setGeometry(50, WIDTH // 4 + 50, 150, 200)
+        self.description.setText('')
+
+        self.delete_task = QPushButton(self)
+        self.delete_task.setGeometry(400, WIDTH // 4 + 50, 150, 50)
+        self.delete_task.setText("Удалить задачу")
+        self.delete_task.clicked.connect(self.delete_task_clicked)
+
+        self.complete_task = QPushButton(self)
+        self.complete_task.setGeometry(400, WIDTH // 4 + 150, 250, 50)
+        self.complete_task.setText("Пометить выполненной")
+        self.complete_task.clicked.connect(self.complete_task_clicked)
+
+        self.task_menu_widgets = [self.task_menu_task_name, self.task_menu_task_group_name,
+                                  self.description, self.delete_task, self.complete_task,
+                                  self.to_main_menu_btn]
+
+        self.window_widgets.extend(self.task_menu_widgets)
+        self.changing_widgets.extend([self.task_menu_task_name, self.task_menu_task_group_name,
+                                      self.description])
+
+        for i in self.task_menu_widgets:
+            i.hide()
 
     def to_main_menu(self):
         for i in self.window_widgets:
             i.hide()
-        for i in self.changing_widgets:
-            i.setText('')
+
         for i in self.main_menu_widgets:
             i.show()
 
+        # Resetting every changing widget to an empty string
+        for i in self.changing_widgets:
+            i.setText('')
+
+        # Resetting importance and urgency choice radio buttons to default mode
         self.important.setChecked(False)
         self.urgent.setChecked(False)
 
         self.main_menu_message.setText(main_menu_phrases.back_to_main_menu)
 
     def add_task_group_choice_clicked(self):
-        for i in self.main_menu_widgets:
+        for i in self.window_widgets:
             i.hide()
 
         for i in self.add_task_group_widgets:
@@ -261,6 +349,8 @@ class Planner(QWidget):
 
     def add_task_group_clicked(self):
         name = self.task_group_name.text()
+
+        # Checking name for correctness
         if not name:
             self.add_task_group_error.setText(add_task_group_phrases.task_group_name_empty)
             return
@@ -269,6 +359,7 @@ class Planner(QWidget):
             self.add_task_group_error.setText(add_task_group_phrases.task_group_name_too_long)
             return
 
+        # Adding new task group
         cur.execute("SELECT name FROM task_groups")
         task_groups_names = cur.fetchall()
 
@@ -295,48 +386,53 @@ class Planner(QWidget):
                         f")")
             db.commit()
 
-            # Main menu transition
             for i in self.add_task_group_widgets:
                 i.hide()
+
+            for i in self.changing_widgets:
+                i.setText('')
 
             for i in self.main_menu_widgets:
                 i.show()
             self.main_menu_message.setText(main_menu_phrases.new_task_group_added)
 
     def watch_task_groups_choice_clicked(self):
-        if self.task_groups:
-            for i in self.main_menu_widgets:
-                i.hide()
-
-            for i in self.watch_task_groups_widgets:
-                i.show()
-
-            # Scroll buttons
-            self.watch_task_groups_forward.hide()
-            self.watch_task_groups_backward.hide()
-            if is_forward(self.task_groups):
-                self.watch_task_groups_forward.show()
-            self.watch_task_groups_backward.hide()
-
-            # Task Groups buttons
-            for i in range(2):
-                for j in range(3):
-                    if i * 3 + j >= min(len(self.task_groups), 6):
-                        self.cur_task_groups[i][j].hide()
-                    else:
-                        self.cur_task_groups[i][j].setText(self.task_groups[i * 3 + j].name)
-                        self.cur_task_groups[i][j].show()
-
-        else:
+        # Checking if there are tasks groups to watch
+        if not self.task_groups:
             self.main_menu_message.setText(main_menu_phrases.no_task_groups)
+
+        # Setting up the task group watching menu
+        for i in self.window_widgets:
+            i.hide()
+
+        for i in self.watch_task_groups_widgets:
+            i.show()
+
+        # Scroll buttons
+        self.watch_task_groups_forward.hide()
+        self.watch_task_groups_backward.hide()
+        if is_forward(self.task_groups):
+            self.watch_task_groups_forward.show()
+
+        # Task groups buttons
+        for i in range(2):
+            for j in range(3):
+                if i * 3 + j >= min(len(self.task_groups), 6):
+                    self.cur_task_groups[i][j].hide()
+                else:
+                    self.cur_task_groups[i][j].setText(self.task_groups[i * 3 + j].name)
+                    self.cur_task_groups[i][j].show()
 
     def watch_task_groups_forward_clicked(self):
         name = self.cur_task_groups[0][0].text()
+
+        # Determining the position of task group in self.task_groups list
         for i in range(len(self.task_groups)):
             if self.task_groups[i].name == name:
                 index = i
                 break
 
+        # Updating buttons' text
         for i in range(2):
             for j in range(3):
                 if index + i * 3 + j + 6 >= len(self.task_groups):
@@ -356,11 +452,14 @@ class Planner(QWidget):
 
     def watch_task_groups_backward_clicked(self):
         name = self.cur_task_groups[0][0].text()
+
+        # Determining the position of task group in self.task_groups list
         for i in range(len(self.task_groups)):
             if self.task_groups[i].name == name:
                 index = i
                 break
 
+        # Updating buttons' text
         for i in range(2):
             for j in range(3):
                 self.cur_task_groups[i][j].setText(self.task_groups[index + i * 3 + j - 6].name)
@@ -383,25 +482,29 @@ class Planner(QWidget):
         for i in self.task_group_menu_widgets:
             i.show()
 
+        # Calculating the amount of completed tasks
         completed = 0
         for i in self.task_groups:
             if i.name == name:
                 amount = len(i.tasks)
                 for j in i.tasks:
                     completed += j.completion
-        self.progress.setText(f"Выполнено: {completed}/{amount}")
-        self.group_task_name.setText(f"Группа: {name}")
 
-    def add_task(self):
+        self.progress.setText(f"Выполнено: {completed}/{amount}")
+        self.task_group_menu_name.setText(f"Группа: {name}")
+
+    def add_task_choice_clicked(self):
         for i in self.window_widgets:
             i.hide()
         for i in self.add_task_widgets:
             i.show()
-        self.add_task_group_name.setText(self.group_task_name.text())
 
+        self.add_task_group_name.setText(self.task_group_menu_name.text())
+
+        # Setting default name for new task
         cnt = 0
         for i in self.task_groups:
-            if i.name == self.group_task_name.text()[8:]:
+            if i.name == self.task_group_menu_name.text()[8:]:
                 for j in i.tasks:
                     if j.name.startswith("Задача") and len(j.name) > 6:
                         try:
@@ -411,8 +514,10 @@ class Planner(QWidget):
 
         self.task_name.setText("Задача" + str(cnt + 1))
 
-    def add_new_task(self):
+    def add_task_clicked(self):
         name = self.task_name.text()
+
+        # Checking name for correctness
         if not name:
             self.task_name_error.setText(add_task_phrases.task_name_empty)
             return
@@ -421,6 +526,7 @@ class Planner(QWidget):
             self.task_name_error.setText(add_task_phrases.task_name_too_long)
             return
 
+        # Adding new task
         group_name = self.add_task_group_name.text()[8:]
         urgency = int(self.urgent.isChecked())
         importance = int(self.important.isChecked())
@@ -441,31 +547,34 @@ class Planner(QWidget):
                             (name, urgency, importance, 0))
                 db.commit()
 
-            break
+                break
 
         for i in self.window_widgets:
             i.hide()
-        for i in [self.task_name, self.task_name_error, self.add_task_group_name]:
-            i.setText('')
 
         self.important.setChecked(False)
         self.urgent.setChecked(False)
 
-        for i in self.watch_task_groups_widgets:
-            if i.text():
-                i.show()
+        for i in self.changing_widgets:
+            if i in self.task_group_menu_widgets:
+                continue
+            i.setText('')
+
+        for i in self.task_group_menu_widgets:
+            i.show()
 
         if not is_forward(self.task_groups, self.cur_task_groups[0][0].text()):
             self.watch_task_groups_forward.hide()
         if not is_backward(self.task_groups, self.cur_task_groups[0][0].text()):
             self.watch_task_groups_backward.hide()
 
-    def delete_task_group_clicked(self):
-        name = self.group_task_name.text()[8:]
+    def delete_task_group_choice_clicked(self):
+        name = self.task_group_menu_name.text()[8:]
         for i in self.task_groups:
             if i.name == name:
                 self.task_groups.remove(i)
                 break
+
         cur.execute(f"SELECT id FROM task_groups WHERE name = \"{name}\"")
         task_group_id = cur.fetchall()[0][0]
 
@@ -476,6 +585,7 @@ class Planner(QWidget):
         cur.execute(f"SELECT id FROM task_groups WHERE id > {task_group_id}")
         task_groups_ids = cur.fetchall()
 
+        # Updating task groups ids
         for i in task_groups_ids:
             cur.execute(f"UPDATE task_groups SET id = {i[0] - 1} WHERE id = {i[0]}")
             cur.execute(f"ALTER TABLE task_group_{i[0]} "
@@ -484,12 +594,212 @@ class Planner(QWidget):
 
         for i in self.window_widgets:
             i.hide()
+
         for i in self.changing_widgets:
             i.setText('')
+
         for i in self.main_menu_widgets:
             i.show()
-
         self.main_menu_message.setText(main_menu_phrases.task_group_deleted)
+        
+    def watch_tasks_choice_clicked(self):
+        name = self.task_group_menu_name.text()[8:]
+
+        # Checking if there are tasks to watch
+        for i in self.task_groups:
+            if i.name == name and i.tasks:
+                task_group = i
+                break
+        else:
+            self.task_group_menu_message.setText(task_group_menu_phrases.no_tasks)
+            return
+
+        for i in self.window_widgets:
+            i.hide()
+
+        for i in self.watch_tasks_widgets:
+            i.show()
+        self.watch_tasks_group_name.setText(self.task_group_menu_name.text())
+
+        # Scroll buttons
+        self.watch_tasks_forward.hide()
+        self.watch_tasks_backward.hide()
+        if is_forward(task_group.tasks):
+            self.watch_tasks_forward.show()
+
+        # Tasks buttons
+        for i in range(2):
+            for j in range(3):
+                if i * 3 + j >= min(len(task_group.tasks), 6):
+                    self.cur_tasks[i][j].hide()
+                else:
+                    self.cur_tasks[i][j].setText(task_group.tasks[i * 3 + j].name)
+                    if task_group.tasks[i * 3 + j].completion:
+                        self.cur_tasks[i][j].setStyleSheet("background-color: green; color: black;")
+                    else:
+                        self.cur_tasks[i][j].setStyleSheet("background-color: gray; color: black;")
+
+                    self.cur_tasks[i][j].show()
+    
+    def watch_tasks_forward_clicked(self):
+        name = self.watch_tasks_group_name.text()[8:]
+        for i in self.task_groups:
+            if i.name == name:
+                task_group = i
+
+        name = self.cur_tasks[0][0].text()
+        for i in range(len(task_group.tasks)):
+            if task_group.tasks[i].name == name:
+                index = i
+                break
+
+        # Updating buttons' text and colour
+        for i in range(2):
+            for j in range(3):
+                if index + i * 3 + j + 6 >= len(task_group.tasks):
+                    self.cur_tasks[i][j].setText('')
+                    self.cur_tasks[i][j].hide()
+                else:
+                    self.cur_tasks[i][j].setText(task_group.tasks[index + i * 3 + j + 6].name)
+                    if task_group.tasks[index + i * 3 + j + 6].completion:
+                        self.cur_tasks[i][j].setStyleSheet("background-color: green; color: black;")
+                    else:
+                        self.cur_tasks[i][j].setStyleSheet("background-color: gray; color: black;")
+
+        first_btn = self.cur_tasks[0][0].text()
+
+        # Scroll buttons
+        self.watch_tasks_forward.hide()
+        self.watch_tasks_backward.hide()
+        if is_forward(task_group.tasks, first_btn):
+            self.watch_tasks_forward.show()
+        if is_backward(task_group.tasks, first_btn):
+            self.watch_tasks_backward.show()
+    
+    def watch_tasks_backward_clicked(self):
+        name = self.watch_tasks_group_name.text()[8:]
+        for i in self.task_groups:
+            if i.name == name:
+                task_group = i
+
+        name = self.cur_tasks[0][0].text()
+        for i in range(len(task_group.tasks)):
+            if task_group.tasks[i].name == name:
+                index = i
+                break
+
+        # Updating buttons' text and colour
+        for i in range(2):
+            for j in range(3):
+                self.cur_tasks[i][j].setText(task_group.tasks[index + i * 3 + j - 6].name)
+                self.cur_tasks[i][j].show()
+                if task_group.tasks[index + i * 3 + j - 6].completion:
+                    self.cur_tasks[i][j].setStyleSheet("background-color: green; color: black;")
+                else:
+                    self.cur_tasks[i][j].setStyleSheet("background-color: gray; color: black;")
+
+        first_btn = self.cur_tasks[0][0].text()
+
+        # Scroll buttons
+        self.watch_tasks_forward.hide()
+        self.watch_tasks_backward.hide()
+        if is_forward(task_group.tasks, first_btn):
+            self.watch_tasks_forward.show()
+        if is_backward(task_group.tasks, first_btn):
+            self.watch_tasks_backward.show()
+
+    def task_clicked(self):
+        for i in self.window_widgets:
+            i.hide()
+
+        for i in self.task_menu_widgets:
+            if i == self.complete_task:
+                continue
+            i.show()
+
+        task_name = self.sender().text()
+        group_task_name = self.watch_tasks_group_name.text()[8:]
+        for i in self.task_groups:
+            if i.name == group_task_name:
+                for j in i.tasks:
+                    if j.name == task_name:
+                        task = j
+                        break
+                break
+
+        # Setting up buttons and labels
+        if not task.completion:
+            self.complete_task.show()
+
+        self.task_menu_task_group_name.setText(self.watch_tasks_group_name.text())
+        self.task_menu_task_name.setText(f"Задача: {task_name}")
+        self.description.setText(f"Характеристики:\n\n"
+                                 f"{'Важная' * task.importance + 'Неважная' * (not task.importance)}\n\n"
+                                 f"{'Срочная' * task.urgency + 'Несрочная' * (not task.urgency)}")
+
+    def delete_task_clicked(self):
+        task_name = self.task_menu_task_name.text()[8:]
+        task_group_name = self.task_menu_task_group_name.text()[8:]
+
+        for i in self.task_groups:
+            if i.name == task_group_name:
+                for j in i.tasks:
+                    if j.name == task_name:
+                        i.tasks.remove(j)
+                break
+
+        cur.execute(f"SELECT id FROM task_groups WHERE name = \"{task_group_name}\"")
+        task_group_id = cur.fetchall()[0][0]
+
+        cur.execute(f"DELETE FROM task_group_{task_group_id} WHERE name = \"{task_name}\"")
+        db.commit()
+
+        for i in self.window_widgets:
+            i.hide()
+
+        for i in self.task_group_menu_widgets:
+            i.show()
+
+        # Recalculating the amount of completed task after new task was deleted
+        completed = 0
+        for i in self.task_groups:
+            if i.name == task_group_name:
+                amount = len(i.tasks)
+                for j in i.tasks:
+                    completed += j.completion
+        self.progress.setText(f"Выполнено: {completed}/{amount}")
+
+    def complete_task_clicked(self):
+        task_name = self.task_menu_task_name.text()[8:]
+        task_group_name = self.task_menu_task_group_name.text()[8:]
+
+        for i in self.task_groups:
+            if i.name == task_group_name:
+                for j in i.tasks:
+                    if j.name == task_name:
+                        j.completion = 1
+                break
+
+        cur.execute(f"SELECT id FROM task_groups WHERE name = \"{task_group_name}\"")
+        task_group_id = cur.fetchall()[0][0]
+
+        cur.execute(f"UPDATE task_group_{task_group_id} SET completion = 1 WHERE name = \"{task_name}\"")
+        db.commit()
+
+        for i in self.window_widgets:
+            i.hide()
+
+        for i in self.task_group_menu_widgets:
+            i.show()
+
+        # Recalculating the amount of completed task after new task was completed
+        completed = 0
+        for i in self.task_groups:
+            if i.name == task_group_name:
+                amount = len(i.tasks)
+                for j in i.tasks:
+                    completed += j.completion
+        self.progress.setText(f"Выполнено: {completed}/{amount}")
 
 
 if __name__ == '__main__':
