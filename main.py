@@ -1,6 +1,7 @@
 import sys
 
 from PyQt6.QtWidgets import *
+from PyQt6.QtGui import QIcon, QPixmap
 
 from database.config import cur, db
 
@@ -12,8 +13,8 @@ from core.functions.scroll_functions import is_forward, is_backward
 LENGTH = 750  # window length
 WIDTH = 500  # window width
 
-TASK_GROUP_NAME_MAX_LENGTH = 10
-TASK_NAME_MAX_LENGTH = 12
+TASK_GROUP_NAME_MAX_LENGTH = 12
+TASK_NAME_MAX_LENGTH = 14
 
 
 class Planner(QWidget):
@@ -50,6 +51,9 @@ class Planner(QWidget):
         font-size: 18px;
         """)
 
+        # Setting icon for window
+        self.setWindowIcon(QIcon("pictures/icon.png"))
+
         # Widgets lists
         self.window_widgets = []
         self.changing_widgets = []
@@ -64,8 +68,8 @@ class Planner(QWidget):
 
         # Main menu
         self.main_menu = QLabel(self)
-        self.main_menu.setGeometry(LENGTH // 2 - 60, 50, 400, 50)
-        self.main_menu.setText(main_menu_phrases.main_menu)
+        self.main_menu.setGeometry(0, -49, 200, 200)
+        self.main_menu.setPixmap(QPixmap("pictures/main_menu_icon"))
 
         self.main_menu_message = QLabel(self)
         self.main_menu_message.setGeometry(LENGTH // 2 - 100, 0, 400, 50)
@@ -348,7 +352,7 @@ class Planner(QWidget):
         self.task_group_name.setText("Группа" + str(cnt + 1))
 
     def add_task_group_clicked(self):
-        name = self.task_group_name.text()
+        name = self.task_group_name.text().replace('"', "''")
 
         # Checking name for correctness
         if not name:
@@ -516,7 +520,7 @@ class Planner(QWidget):
         self.task_name.setText("Задача" + str(cnt + 1))
 
     def add_task_clicked(self):
-        name = self.task_name.text()
+        name = self.task_name.text().replace('"', "''")
 
         # Checking name for correctness
         if not name:
