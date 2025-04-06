@@ -577,6 +577,7 @@ class Planner(QWidget):
                     completed += j.completion
 
         self.progress.setText(f"Выполнено: {completed}/{amount}")
+        self.task_group_menu_message.setText(task_group_menu_phrases.new_task_added)
 
         if not is_forward(self.task_groups, self.cur_task_groups[0][0].text()):
             self.watch_task_groups_forward.hide()
@@ -783,6 +784,7 @@ class Planner(QWidget):
                 for j in i.tasks:
                     completed += j.completion
         self.progress.setText(f"Выполнено: {completed}/{amount}")
+        self.task_group_menu_message.setText(task_group_menu_phrases.task_deleted)
 
     def complete_task_clicked(self):
         task_name = self.task_menu_task_name.text()[8:]
